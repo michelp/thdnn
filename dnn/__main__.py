@@ -1,28 +1,31 @@
 import os
-from .dnn import *
-from .radix import *
-from .challenge import *
+import argparse
+from . import challenge
+from . import radix
+from . import training
 
-num_neurons = [1024, 4096, 16384, 65536]
-num_layers = [120, 480, 1920]
+DEFAULT_NEURONS = [1024, 4096, 16384, 65536]
+DEFAULT_LAYERS = [120, 480, 1920]
 
-dest = os.getenv("DEST")
-neurons = os.getenv("NEURONS")
-nlayers = os.getenv("NLAYERS")
+DEST = os.getenv("DEST")
+NEURONS = os.getenv("NEURONS")
+LAYERS = os.getenv("LAYERS")
+LOG_LEVEL = os.getenv("LOG_LEVEL")
 
-if neurons and nlayers:
-    neurons = int(neurons)
-    nlayers = int(nlayers)
-    images = load_images(neurons, dest)
-    layers = load_layers(neurons, dest, nlayers)
-    bias = generate_bias(neurons, nlayers)
-    run(neurons, images, layers, bias, dest)
-else:
-    for neurons in num_neurons:
-        print("Building layers for %s neurons" % neurons)
-        layers = load_layers(neurons, 1920, dest)
-        bias = generate_bias(neurons, 1920)
-        images = load_images(neurons, dest)
-        for nlayers in num_layers:
-            print("Benching %s neurons %s layers" % (neurons, nlayers))
-            run(neurons, images, layers[:nlayers], bias[:nlayers], dest)
+parser = argparse.ArgumentParser(description="CoinBLAS")
+parser.add_argument("mode", default="run", help="run|train")
+parser.add_argument("--dest", default=DEST, help="Destination directory")
+parser.add_argument("--neurons", default=NEURONS, help="Number of Neurons")
+parser.add_argument("--layers", default=LAYERS, help="Number of Layers")
+parser.add_argument("--log-level", default=LOG_LEVEL, help="Log level.")
+args = parser.parse_args()
+
+
+neurons = int(args.neurons)
+nlayers = int(args.layers)
+
+if args.mode == 'train':
+    training.train(args.dest, neurons, nlayers)
+elif args.mode == 'run':
+    challenge.run(args.dest, neurons, nlayers)
+

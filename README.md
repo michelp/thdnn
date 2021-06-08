@@ -1,2 +1,1 @@
-# thdnn
-Tropical Hypersparse Deep Neural Network
+# Tropical Hypersparse Deep Neural Network

@@ -1,6 +1,14 @@
 from pygraphblas import FP32, binary_op
 from . import timing
 
+@timing
+def mad(Y, w, b):
+    Y.mxm(w, out=Y)
+    with FP32.PLUS_PLUS:
+        Y.mxm(b, out=Y)
+    return Y
+
+@timing
 def relu(Y):
     Y.select(">0", out=Y)
     M = Y.select(">", 32)
@@ -11,10 +19,7 @@ def relu(Y):
 @timing
 def dnn(W, B, Y):
     for i, (w, b) in enumerate(zip(W, B)):
-        Y = Y @ w
-        with FP32.PLUS_PLUS:
-            Y.mxm(b, out=Y)
-        Y = relu(Y)
+        Y = relu(mad(Y, w, b))
     return Y
 
 @timing

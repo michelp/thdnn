@@ -1,3 +1,18 @@
+if [ $# -eq 0 ]
+    then
+        echo "Usage: ./dnn.sh data_dir [neurons layers]
+
+Example: ./dnn.sh dnn_data 1024 120
+
+This script will check or data files and download them from
+graphchallenge.org if they are missing.
+
+If neurons and layers are omitted all test data will be downloaded.p
+"
+        exit 1
+fi
+
+
 download () {
     if [ ! -f "sparse-images-$2.tsv" ]; then
         wget https://graphchallenge.s3.amazonaws.com/synthetic/sparsechallenge_2019/mnist/sparse-images-$2.tsv.gz
@@ -35,8 +50,8 @@ fi
 
 cd -
 
-docker run --rm --env DEST=/$1 --env NEURONS=$2 --env NLAYERS=$3 \
+docker run --rm --env DEST=/$1 --env NEURONS=$2 --env LAYERS=$3 \
        -v `pwd`/$1:/$1 \
        -v `pwd`/dnn:/pygraphblas/dnn/ \
-       -it graphblas/pygraphblas-minimal:test ipython -i -m dnn
+       -it graphblas/pygraphblas-notebook:test ipython -i -m dnn run
 

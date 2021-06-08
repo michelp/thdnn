@@ -1,23 +1,27 @@
-from pygraphblas import *
+from pygraphblas import Matrix, unary_op, FP64, FP32
 from operator import mul, eq, attrgetter
 from functools import reduce
 from . import timing
+from random import random
 
+@unary_op(FP32)  
+def random_op(x): 
+    return random()
 
-def permutation_matrix(size):
+def permutation_matrix(size, default=1.0):
     P = Matrix.sparse(FP32, size, size)
-    P[size - 1, 0] = 1.0
+    P[size - 1, 0] = default
     for i in range(size - 1):
-        P[i, i + 1] = 1.0
+        P[i, i + 1] = default
     return P
 
 
-def mixed_topo_radix(topos):
+def mixed_topo_radix(topos, default=1.0, initializer=None):
     sizes = [reduce(mul, x) for x in topos]
     assert reduce(eq, sizes)
     size = sizes[0]
     layers = []
-    P = permutation_matrix(size)
+    P = permutation_matrix(size, default)
 
     for t in topos:
         place_value = 1
@@ -26,16 +30,18 @@ def mixed_topo_radix(topos):
             for j in range(n):
                 layer += P ** (j * place_value)
             place_value *= n
+            if initializer is not None:
+                layer.apply(initializer, out=layer)            
             layers.append(layer)
     return layers
 
 
-def ddnn(spec):
-    return [Matrix.dense(FP32, spec[i], spec[i + 1]) for i in range(len(spec) - 1)]
+def ddnn(spec, fill=1.0):
+    return [Matrix.dense(FP32, spec[i], spec[i + 1], fill=fill) for i in range(len(spec) - 1)]
 
 
-def radixnet(topos, spec):
-    return [d.kronecker(w) for d, w in zip(mixed_topo_radix(topos), ddnn(spec))]
+def radixnet(topos, spec, default=1.0, kron_op=None, initializer=None):
+    return [d.kronecker(w, kron_op) for d, w in zip(mixed_topo_radix(topos, default, initializer), ddnn(spec))]
 
 
 def randomize(layers, damp=0.1):
