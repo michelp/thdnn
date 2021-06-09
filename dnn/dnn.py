@@ -16,9 +16,12 @@ def relu(Y):
         Y[M] = 32
     return Y
 
+def relu_prime(Y):
+    return Y.select('>0').apply(FP32.ONE)
+
 @timing
 def dnn(W, B, Y):
-    for i, (w, b) in enumerate(zip(W, B)):
+    for w, b in zip(W, B):
         Y = relu(mad(Y, w, b))
     return Y
 

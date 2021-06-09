@@ -8,17 +8,14 @@ from .radix import hypergraph
 
 @timing
 def classify(neurons, images, layers, bias, dest):
-    breakpoint()
     result = dnn(layers, bias, images)
     r = result.reduce_vector()
     cats = r.apply(BOOL.ONE, out=Vector.sparse(BOOL, r.size))
     truecats = io.load_categories(neurons, len(layers), dest)
     if cats.iseq(truecats):
         print('SUCCESS')
-        breakpoint()
     else:
         print('FAIL: Result does not match ground truth categories.')
-        breakpoint()
 
 def run(dest, neurons, nlayers):
     if neurons and nlayers:

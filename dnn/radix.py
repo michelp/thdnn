@@ -1,12 +1,19 @@
-from pygraphblas import Matrix, unary_op, FP64, FP32
+from pygraphblas import Matrix, binary_op, unary_op, FP64, FP32
 from operator import mul, eq, attrgetter
 from functools import reduce
 from . import timing
-from random import random
+from random import random, uniform
+
 
 @unary_op(FP32)  
 def random_op(x): 
     return random()
+
+
+@binary_op(FP32)  
+def uniform_op(x, y):
+    return uniform(x, y)
+
 
 def permutation_matrix(size, default=1.0):
     P = Matrix.sparse(FP32, size, size)
@@ -16,7 +23,7 @@ def permutation_matrix(size, default=1.0):
     return P
 
 
-def mixed_topo_radix(topos, default=1.0, initializer=None):
+def mixed_topo_radix(topos, default=1.0):
     sizes = [reduce(mul, x) for x in topos]
     assert reduce(eq, sizes)
     size = sizes[0]
@@ -30,36 +37,28 @@ def mixed_topo_radix(topos, default=1.0, initializer=None):
             for j in range(n):
                 layer += P ** (j * place_value)
             place_value *= n
-            if initializer is not None:
-                layer.apply(initializer, out=layer)            
             layers.append(layer)
     return layers
 
 
 def ddnn(spec, fill=1.0):
-    return [Matrix.dense(FP32, spec[i], spec[i + 1], fill=fill) for i in range(len(spec) - 1)]
+    return [Matrix.dense(FP32, spec[i], spec[i + 1], fill=fill)
+            for i in range(len(spec) - 1)]
 
 
-def radixnet(topos, spec, default=1.0, kron_op=None, initializer=None):
-    return [d.kronecker(w, kron_op) for d, w in zip(mixed_topo_radix(topos, default, initializer), ddnn(spec))]
+def radixnet(topos, spec, default=1.0, kron_op=None):
+    return [d.kronecker(w, kron_op)
+            for d, w in
+            zip(mixed_topo_radix(topos, default), ddnn(spec))]
 
 
-def randomize(layers, damp=0.1):
-    return [
-        l.emult(Matrix.random(FP32, 12, 12, 1000), FP32.PLUS).apply_second(
-            FP32.TIMES, damp
-        )
-        for l in layers
-    ]
-
-
-_rowgetter = attrgetter("nrows")
+_nrowsgetter = attrgetter("nrows")
 
 
 @timing
 def hypergraph(mt, size=None):
     if size is None:
-        size = sum(map(_rowgetter, mt)) + mt[-1].nrows
+        size = sum(map(_nrowsgetter, mt)) + mt[-1].nrows
     r = Matrix.sparse(FP32, size, size)
     ioffset = 0
     joffset = 0
